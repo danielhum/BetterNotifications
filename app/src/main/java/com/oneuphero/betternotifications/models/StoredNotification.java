@@ -20,9 +20,12 @@ public class StoredNotification {
     private String title;
     @DatabaseField
     private String body;
+    @DatabaseField
+    private Boolean dismissed = false;
 
     public StoredNotification() {
         // ORMLite needs a no-arg constructor
+        this.dismissed = false;
     }
 
     public StoredNotification(int notification_id, String package_name, String title, String body) {
@@ -37,6 +40,17 @@ public class StoredNotification {
         String printPackageName = package_name == null ? "" : package_name;
         String printTitle = title == null ? "" : title;
         return "[" + String.valueOf(notification_id) + "] " + printPackageName + " " + printTitle;
+    }
+
+    public int getNotificationId() {
+        return notification_id;
+    }
+
+    public Boolean getDismissed() {
+        return dismissed;
+    }
+    public void setDismissed(Boolean dismissed) {
+        this.dismissed = dismissed;
     }
 
 }

@@ -95,6 +95,21 @@ public class NLService extends NotificationListenerService {
 
     public void onNotificationRemoved(StatusBarNotification sbn) {
         Log.i(TAG, "Removed #" + sbn.getId() + " " + sbn.getNotification().tickerText + " " + sbn.getPackageName());
+        try {
+            List<StoredNotification> notifications = getDao().queryBuilder().where()
+                    .eq("notification_id", sbn.getId())
+                    .and()
+                    .eq("package_name", sbn.getPackageName()).query();
+            if(!notifications.isEmpty()) {
+                for (StoredNotification n : notifications) {
+                    n.setDismissed(true);
+                    getDao().createOrUpdate(n);
+                    Log.d(TAG, "marked #" + String.valueOf(n.getNotificationId()) + " as dismissed");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private DatabaseHelper getDbHelper() {
