@@ -3,7 +3,8 @@ package com.oneuphero.betternotifications;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.nfc.Tag;
+import android.content.Intent;
+import android.os.Bundle;
 import android.os.Handler;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
@@ -13,9 +14,14 @@ import com.j256.ormlite.dao.Dao;
 import com.oneuphero.betternotifications.helpers.DatabaseHelper;
 import com.oneuphero.betternotifications.models.StoredNotification;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.sql.SQLException;
+import java.text.DateFormat;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by Serenity on 28/9/14.
@@ -54,18 +60,59 @@ public class NLService extends NotificationListenerService {
         //TODO: this is throwing null error?
         if(sbn.getTag() != null && sbn.getTag().equals(TAG) && sbn.getId() == NOTIFICATION_INITIAL) {
             cancelNotification(sbn.getPackageName(), TAG, NOTIFICATION_INITIAL);
-            Log.i(TAG, "dismissed notification");
+            Log.d(TAG, "dismissed notification");
         } else {
-            storeStatusBarNotification(sbn);
+            processStatusBarNotification(sbn);
         }
         if (!mCollectedAllNotifications) {
             mCollectedAllNotifications = true;
             StatusBarNotification[] sbns = getActiveNotifications();
             for (StatusBarNotification activeSbn : sbns) {
-                Log.i(TAG, "NOTIFICATION: " + activeSbn.getNotification().tickerText);
-                storeStatusBarNotification(activeSbn);
+                Log.d(TAG, activeSbn.getPackageName() + ": " + activeSbn.getNotification().tickerText);
+                processStatusBarNotification(activeSbn);
             }
         }
+    }
+
+    private void processStatusBarNotification(StatusBarNotification sbn) {
+        String packageName = sbn.getPackageName();
+        CharSequence ticker = sbn.getNotification().tickerText;
+        Bundle extras = sbn.getNotification().extras;
+        CharSequence title = extras.getString("android.title");
+        CharSequence text = extras.getCharSequence("android.text");
+
+        if (ticker == null) ticker = "";
+        if (title == null) title = "";
+        if (text == null) text = "";
+
+        String targetPhrase = "Eliza";
+
+        // DEBUG
+        if (packageName.equals("com.whatsapp")) {
+            Log.d(TAG, "whatsapp - \tandroid.title: " + title);
+            Log.d(TAG, "whatsapp - \tandroid.text: " + text);
+            Log.d(TAG, "whatsapp - \tticker: " + ticker);
+        }
+
+        if ((packageName.equals("com.whatsapp") || packageName.equals("com.google.android.apps.messaging")) &&
+                (title.toString().contains(targetPhrase) || ticker.toString().contains(targetPhrase) || text.toString().contains(targetPhrase))
+                ) {
+
+            // DEBUG
+            NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            Notification.Builder nBuilder = new Notification.Builder(getApplicationContext());
+            String msg = "title: " + title + "\ntext: " + text + "\nticker: " + ticker;
+            nBuilder.setContentTitle(title);
+            nBuilder.setContentText(msg);
+            nBuilder.setTicker(ticker);
+            nBuilder.setSmallIcon(R.drawable.ic_launcher);
+            nBuilder.setStyle(new Notification.BigTextStyle().bigText(msg));
+            nBuilder.setAutoCancel(true);
+            nManager.notify(TAG, NOTIFICATION_INITIAL+10, nBuilder.build());
+            Log.d(TAG, "whatsapp - posted custom notification!");
+        }
+
+        //storeStatusBarNotification(sbn); TODO: disable for now, restore when implementing this functionality
     }
 
     private void storeStatusBarNotification(StatusBarNotification sbn) {
