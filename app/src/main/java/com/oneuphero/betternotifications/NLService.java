@@ -122,7 +122,8 @@ public class NLService extends NotificationListenerService {
         }
 
         if ((packageName.equals("com.whatsapp") || packageName.equals("com.google.android.apps.messaging")) &&
-                (title.toString().contains(targetPhrase) || ticker.toString().contains(targetPhrase) || text.toString().contains(targetPhrase))
+                //(title.toString().contains(targetPhrase) || ticker.toString().contains(targetPhrase) || text.toString().contains(targetPhrase))
+                title.toString().contains(targetPhrase)
                 ) {
 
             // DEBUG
@@ -132,6 +133,7 @@ public class NLService extends NotificationListenerService {
             nBuilder.setContentTitle(title);
             nBuilder.setContentText(msg);
             nBuilder.setTicker(ticker);
+            nBuilder.setContentIntent(sbn.getNotification().contentIntent);
             nBuilder.setSmallIcon(R.drawable.ic_launcher);
             nBuilder.setStyle(new Notification.BigTextStyle().bigText(msg));
             nBuilder.setAutoCancel(true);
