@@ -10,6 +10,7 @@ import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
 
+import com.getpebble.android.kit.PebbleKit;
 import com.j256.ormlite.dao.Dao;
 import com.oneuphero.betternotifications.helpers.DatabaseHelper;
 import com.oneuphero.betternotifications.models.StoredNotification;
@@ -32,6 +33,32 @@ public class NLService extends NotificationListenerService {
     private boolean mCollectedAllNotifications = false;
     private DatabaseHelper mDbHelper = null;
     private Dao<StoredNotification, Integer> mDao = null;
+
+    private Handler mHandler = new Handler();
+    private long mLastNotified = 0;
+    private static final int mMinWindow = 1000; // time in ms before notifying again
+    private Runnable notifyPebble = new Runnable() {
+        @Override
+        public void run() {
+            boolean connected = PebbleKit.isWatchConnected(getApplicationContext());
+            if (connected) {
+                final Intent i = new Intent("com.getpebble.action.SEND_NOTIFICATION");
+
+                final Map data = new HashMap();
+                data.put("title", "Message from Eliza");
+                data.put("body", "@ " + DateFormat.getTimeInstance(DateFormat.SHORT).format(System.currentTimeMillis()));
+                final JSONObject jsonData = new JSONObject(data);
+                final String notificationData = new JSONArray().put(jsonData).toString();
+
+                i.putExtra("messageType", "PEBBLE_ALERT");
+                i.putExtra("sender", "BetterNotifications");
+                i.putExtra("notificationData", notificationData);
+
+                Log.d(TAG, "About to send a modal alert to Pebble: " + notificationData);
+                sendBroadcast(i);
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
@@ -110,6 +137,12 @@ public class NLService extends NotificationListenerService {
             nBuilder.setAutoCancel(true);
             nManager.notify(TAG, NOTIFICATION_INITIAL+10, nBuilder.build());
             Log.d(TAG, "whatsapp - posted custom notification!");
+
+            long now = System.currentTimeMillis();
+            if (now-mLastNotified > mMinWindow) {
+                mHandler.postDelayed(notifyPebble, mMinWindow);
+                mLastNotified = now;
+            }
         }
 
         //storeStatusBarNotification(sbn); TODO: disable for now, restore when implementing this functionality
