@@ -86,7 +86,7 @@ public class NLService extends NotificationListenerService {
         Log.i(TAG, "Posted #" + sbn.getId() + " " + sbn.getNotification().tickerText + " " + sbn.getPackageName());
         //TODO: this is throwing null error?
         if(sbn.getTag() != null && sbn.getTag().equals(TAG) && sbn.getId() == NOTIFICATION_INITIAL) {
-            cancelNotification(sbn.getPackageName(), TAG, NOTIFICATION_INITIAL);
+            cancelNotification(sbn.getKey());
             Log.d(TAG, "dismissed notification");
         } else {
             processStatusBarNotification(sbn);
@@ -95,7 +95,6 @@ public class NLService extends NotificationListenerService {
             mCollectedAllNotifications = true;
             StatusBarNotification[] sbns = getActiveNotifications();
             for (StatusBarNotification activeSbn : sbns) {
-                Log.d(TAG, activeSbn.getPackageName() + ": " + activeSbn.getNotification().tickerText);
                 processStatusBarNotification(activeSbn);
             }
         }
@@ -105,12 +104,14 @@ public class NLService extends NotificationListenerService {
         String packageName = sbn.getPackageName();
         CharSequence ticker = sbn.getNotification().tickerText;
         Bundle extras = sbn.getNotification().extras;
-        CharSequence title = extras.getString("android.title");
+        CharSequence title = extras.getCharSequence("android.title");
         CharSequence text = extras.getCharSequence("android.text");
 
         if (ticker == null) ticker = "";
         if (title == null) title = "";
         if (text == null) text = "";
+
+        Log.d(TAG, sbn.getPackageName() + ":\t" + sbn.getNotification().tickerText);
 
         String targetPhrase = "Eliza";
 
@@ -129,10 +130,9 @@ public class NLService extends NotificationListenerService {
             // DEBUG
             NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             Notification.Builder nBuilder = new Notification.Builder(getApplicationContext());
-            String msg = "title: " + title + "\ntext: " + text + "\nticker: " + ticker;
-            nBuilder.setContentTitle(title);
+            String msg = text.toString();
             nBuilder.setContentText(msg);
-            nBuilder.setTicker(ticker);
+            nBuilder.setTicker(text);
             nBuilder.setContentIntent(sbn.getNotification().contentIntent);
             nBuilder.setSmallIcon(R.drawable.ic_launcher);
             nBuilder.setStyle(new Notification.BigTextStyle().bigText(msg));
@@ -157,13 +157,13 @@ public class NLService extends NotificationListenerService {
         try {
             Log.d(TAG, "querying for: " + String.valueOf(notificationId) + " " + packageName);
             List<StoredNotification> notifications = getDao().queryBuilder().where()
-                                                               .eq("notification_id", notificationId)
-                                                               .and()
-                                                               .eq("package_name", packageName).query();
+                    .eq("notification_id", notificationId)
+                    .and()
+                    .eq("package_name", packageName).query();
             if (notifications.isEmpty()) {
-                String title = n.tickerText == null ? null : n.tickerText.toString();
-                getDao().create(new StoredNotification(notificationId, packageName, title, null));
-                Log.d(TAG, "stored notification! #" + notificationId + " " + title);
+                StoredNotification storedNotification = new StoredNotification(sbn);
+                getDao().create(storedNotification);
+                Log.d(TAG, "stored notification! #" + notificationId + " " + storedNotification.getTitle());
             } else {
                 Log.d(TAG, "found notifications: ");
                 for(StoredNotification sn : notifications) {

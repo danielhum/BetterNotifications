@@ -1,5 +1,8 @@
 package com.oneuphero.betternotifications.models;
 
+import android.app.Notification;
+import android.service.notification.StatusBarNotification;
+
 import com.j256.ormlite.field.DatabaseField;
 import com.j256.ormlite.table.DatabaseTable;
 
@@ -22,6 +25,8 @@ public class StoredNotification {
     private String body;
     @DatabaseField
     private Boolean dismissed = false;
+    @DatabaseField
+    private String statusBarNotificationKey;
 
     public StoredNotification() {
         // ORMLite needs a no-arg constructor
@@ -33,6 +38,15 @@ public class StoredNotification {
         this.package_name = package_name;
         this.title = title;
         this.body = body;
+    }
+
+    public StoredNotification(StatusBarNotification sbn) {
+        this.notification_id = sbn.getId();
+        this.package_name = sbn.getPackageName();
+        Notification n = sbn.getNotification();
+        this.title = n.tickerText == null ? null : n.tickerText.toString();
+        this.body = null;
+        this.statusBarNotificationKey = sbn.getKey();
     }
 
     @Override
@@ -52,5 +66,9 @@ public class StoredNotification {
     public void setDismissed(Boolean dismissed) {
         this.dismissed = dismissed;
     }
+    public String getBody(){ return body; }
 
+    public String getTitle() {
+        return title;
+    }
 }
