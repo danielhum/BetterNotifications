@@ -71,4 +71,8 @@ public class StoredNotification {
     public String getTitle() {
         return title;
     }
+
+    public String getPackageName() {
+        return package_name;
+    }
 }
