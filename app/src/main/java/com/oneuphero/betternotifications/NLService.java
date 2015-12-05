@@ -29,6 +29,7 @@ import java.util.Map;
  */
 public class NLService extends NotificationListenerService {
     private String TAG = this.getClass().getSimpleName();
+    public static String PACKAGE_NAME;
     private final int NOTIFICATION_INITIAL = 0;  // initial notification to trigger service
     private boolean mCollectedAllNotifications = false;
     private DatabaseHelper mDbHelper = null;
@@ -59,6 +60,7 @@ public class NLService extends NotificationListenerService {
             }
         }
     };
+    private long mLastDismissed = 0;  // last time our notification was dismissed
 
     @Override
     public void onCreate() {
@@ -67,6 +69,7 @@ public class NLService extends NotificationListenerService {
         // notification callback triggered
         Handler handler = new Handler();
         final Context context = this;
+        PACKAGE_NAME = getApplicationContext().getPackageName();
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -85,9 +88,9 @@ public class NLService extends NotificationListenerService {
     public void onNotificationPosted(StatusBarNotification sbn) {
         Log.i(TAG, "Posted #" + sbn.getId() + " " + sbn.getNotification().tickerText + " " + sbn.getPackageName());
         //TODO: this is throwing null error?
-        if(sbn.getTag() != null && sbn.getTag().equals(TAG) && sbn.getId() == NOTIFICATION_INITIAL) {
+        if(isInitialNotification(sbn)) {
             cancelNotification(sbn.getKey());
-            Log.d(TAG, "dismissed notification");
+//            Log.d(TAG, "dismissed notification");
         } else {
             processStatusBarNotification(sbn);
         }
@@ -98,6 +101,10 @@ public class NLService extends NotificationListenerService {
                 processStatusBarNotification(activeSbn);
             }
         }
+    }
+
+    private boolean isInitialNotification(StatusBarNotification sbn) {
+        return sbn.getTag() != null && sbn.getTag().equals(TAG) && sbn.getId() == NOTIFICATION_INITIAL;
     }
 
     private void processStatusBarNotification(StatusBarNotification sbn) {
@@ -191,6 +198,14 @@ public class NLService extends NotificationListenerService {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+
+        if (!isInitialNotification(sbn) && sbn.getPackageName().equals(PACKAGE_NAME)) {
+            long dismissedTime = System.currentTimeMillis();
+            if(dismissedTime - mLastDismissed < 2000) {
+                ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancelAll();
+            }
+            mLastDismissed = dismissedTime;
         }
     }
 
