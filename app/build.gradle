@@ -30,4 +30,5 @@ dependencies {
     compile 'com.j256.ormlite:ormlite-android:4.48'
     compile 'com.j256.ormlite:ormlite-core:4.48'
     compile 'com.getpebble:pebblekit:2.6.0'
+    compile 'com.android.support:support-v13:23.1.0'
 }
