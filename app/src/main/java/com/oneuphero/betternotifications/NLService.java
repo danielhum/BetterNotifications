@@ -60,6 +60,7 @@ public class NLService extends NotificationListenerService {
             }
         }
     };
+    private int mNotificationsPostedCount = 0;
     private long mLastDismissed = 0;  // last time our notification was dismissed
 
     @Override
@@ -134,17 +135,44 @@ public class NLService extends NotificationListenerService {
                 title.toString().contains(targetPhrase)
                 ) {
 
+            // check if have previous notifications
+            int unreadCount = 0;
+            List<StoredNotification> notifications = null;
+            try {
+                 notifications = getDao().queryBuilder().where()
+                        .isNotNull("title")
+                        .and()
+                        .eq("dismissed", false)
+                        .and()
+                        .eq("package_name", PACKAGE_NAME).query();
+                if (notifications.size() > 0) {
+                    unreadCount = notifications.size();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
             // DEBUG
             NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             Notification.Builder nBuilder = new Notification.Builder(getApplicationContext());
             String msg = text.toString();
+            if (unreadCount > 0) {
+                for (StoredNotification sn : notifications) {
+                    Log.d(TAG, "sn: " + sn.getTitle());
+                    msg += "\n" + sn.getTitle();
+                }
+            }
+            nBuilder.setContentTitle(title + " (" + String.valueOf(unreadCount) + "/" + String.valueOf(mNotificationsPostedCount) + ")");
             nBuilder.setContentText(msg);
             nBuilder.setTicker(text);
             nBuilder.setContentIntent(sbn.getNotification().contentIntent);
             nBuilder.setSmallIcon(R.drawable.ic_launcher);
             nBuilder.setStyle(new Notification.BigTextStyle().bigText(msg));
             nBuilder.setAutoCancel(true);
-            nManager.notify(TAG, NOTIFICATION_INITIAL+10, nBuilder.build());
+            nManager.notify(TAG, NOTIFICATION_INITIAL+10+unreadCount+mNotificationsPostedCount, nBuilder.build());
+            if (++mNotificationsPostedCount > 100) {
+                mNotificationsPostedCount = 0;
+            };
             Log.d(TAG, "whatsapp - posted custom notification!");
 
             long now = System.currentTimeMillis();
