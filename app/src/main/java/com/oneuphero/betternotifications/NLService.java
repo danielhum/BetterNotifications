@@ -152,6 +152,10 @@ public class NLService extends NotificationListenerService {
                 mHandler.postDelayed(notifyPebble, mMinWindow);
                 mLastNotified = now;
             }
+
+            storeStatusBarNotification(sbn);
+        } else if (packageName.equals(PACKAGE_NAME)) {
+            storeStatusBarNotification(sbn);
         }
 
         //storeStatusBarNotification(sbn); TODO: disable for now, restore when implementing this functionality
