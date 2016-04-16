@@ -90,9 +90,9 @@ public class StoredNotificationsAdapter extends BaseExpandableListAdapter {
 
         TextView contentView = (TextView) convertView.findViewById(R.id.contentText);
         StoredNotification sn = getStoredNotifications(groupPosition).get(childPosition);
-        String contentString = "[" + sn.getNotificationId() + "] " + sn.getTitle();
+        String contentString = "#" + sn.getNotificationId() + " " + sn.getTitle();
         if (sn.getDismissed()) {
-            contentString += " (dismissed)";
+            contentString = "[dismissed] " + contentString;
         }
         contentView.setText(contentString);
 

@@ -31,6 +31,7 @@ public class NLService extends NotificationListenerService {
     private String TAG = this.getClass().getSimpleName();
     public static String PACKAGE_NAME;
     private final int NOTIFICATION_INITIAL = 0;  // initial notification to trigger service
+    private final int NOTIFICATION_WHATSAPP = 1;
     private boolean mCollectedAllNotifications = false;
     private DatabaseHelper mDbHelper = null;
     private Dao<StoredNotification, Integer> mDao = null;
@@ -71,9 +72,12 @@ public class NLService extends NotificationListenerService {
         Handler handler = new Handler();
         final Context context = this;
         PACKAGE_NAME = getApplicationContext().getPackageName();
+        Log.d(TAG, "creating NLService...");
+
         handler.postDelayed(new Runnable() {
             @Override
             public void run() {
+                Log.d(TAG, "NLService postDelayed...");
                 NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
                 Notification.Builder nBuilder = new Notification.Builder(context);
                 nBuilder.setContentTitle("Better Notifications");
@@ -85,6 +89,19 @@ public class NLService extends NotificationListenerService {
             }
         }, 1000);
     }
+
+/*    @Override // TODO: THIS SHOULD BE IN AN IntentService ?
+    protected void onHandleIntent(Intent intent) {
+        NotificationManager nm = (NotificationManager)
+                getSystemService(NOTIFICATION_SERVICE);
+
+        String action = intent.getAction();
+        if(action.equals(ACTION_DISMISS)) {
+            nm.cancel(CommonConstants.NOTIFICATION_ID);
+        }
+    }*/
+
+
 
     public void onNotificationPosted(StatusBarNotification sbn) {
         Log.i(TAG, "Posted #" + sbn.getId() + " " + sbn.getNotification().tickerText + " " + sbn.getPackageName());
@@ -130,16 +147,18 @@ public class NLService extends NotificationListenerService {
             Log.d(TAG, "whatsapp - \tticker: " + ticker);
         }
 
+        String msg = text.toString();
+
         if ((packageName.equals("com.whatsapp") || packageName.equals("com.google.android.apps.messaging")) &&
                 //(title.toString().contains(targetPhrase) || ticker.toString().contains(targetPhrase) || text.toString().contains(targetPhrase))
-                title.toString().contains(targetPhrase)
+                title.toString().contains(targetPhrase) && !msg.matches("\\d+ new messages")
                 ) {
 
             // check if have previous notifications
             int unreadCount = 0;
             List<StoredNotification> notifications = null;
             try {
-                 notifications = getDao().queryBuilder().where()
+                notifications = getDao().queryBuilder().where()
                         .isNotNull("title")
                         .and()
                         .eq("dismissed", false)
@@ -155,7 +174,6 @@ public class NLService extends NotificationListenerService {
             // DEBUG
             NotificationManager nManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             Notification.Builder nBuilder = new Notification.Builder(getApplicationContext());
-            String msg = text.toString();
             if (unreadCount > 0) {
                 for (StoredNotification sn : notifications) {
                     Log.d(TAG, "sn: " + sn.getTitle());
@@ -169,20 +187,24 @@ public class NLService extends NotificationListenerService {
             nBuilder.setSmallIcon(R.drawable.ic_launcher);
             nBuilder.setStyle(new Notification.BigTextStyle().bigText(msg));
             nBuilder.setAutoCancel(true);
-            nManager.notify(TAG, NOTIFICATION_INITIAL+10+unreadCount+mNotificationsPostedCount, nBuilder.build());
+//            nManager.notify(TAG, NOTIFICATION_INITIAL + 10 + unreadCount + mNotificationsPostedCount, nBuilder.build());
+            nManager.notify(TAG, NOTIFICATION_WHATSAPP, nBuilder.build());
             if (++mNotificationsPostedCount > 100) {
                 mNotificationsPostedCount = 0;
-            };
+            }
             Log.d(TAG, "whatsapp - posted custom notification!");
 
-            long now = System.currentTimeMillis();
-            if (now-mLastNotified > mMinWindow) {
-                mHandler.postDelayed(notifyPebble, mMinWindow);
-                mLastNotified = now;
-            }
+            // No longer needed
+            //
+            // long now = System.currentTimeMillis();
+            // if (now - mLastNotified > mMinWindow) {
+            //     mHandler.postDelayed(notifyPebble, mMinWindow);
+            //     mLastNotified = now;
+            // }
 
             storeStatusBarNotification(sbn);
-        } else if (packageName.equals(PACKAGE_NAME)) {
+//        } else if (packageName.equals(PACKAGE_NAME)) {
+        } else {
             storeStatusBarNotification(sbn);
         }
 
