@@ -187,8 +187,8 @@ public class NLService extends NotificationListenerService {
             nBuilder.setSmallIcon(R.drawable.ic_launcher);
             nBuilder.setStyle(new Notification.BigTextStyle().bigText(msg));
             nBuilder.setAutoCancel(true);
-//            nManager.notify(TAG, NOTIFICATION_INITIAL + 10 + unreadCount + mNotificationsPostedCount, nBuilder.build());
-            nManager.notify(TAG, NOTIFICATION_WHATSAPP, nBuilder.build());
+            nManager.notify(TAG, NOTIFICATION_WHATSAPP + 10 + unreadCount + mNotificationsPostedCount, nBuilder.build());
+//            nManager.notify(TAG, NOTIFICATION_WHATSAPP, nBuilder.build());
             if (++mNotificationsPostedCount > 100) {
                 mNotificationsPostedCount = 0;
             }
@@ -215,6 +215,18 @@ public class NLService extends NotificationListenerService {
         Notification n = sbn.getNotification();
         int notificationId = sbn.getId();
         String packageName = sbn.getPackageName();
+
+        // TEMPORARY FOR DEBUG
+        if (packageName.equals("com.whatsapp")) {
+            StoredNotification storedNotification = new StoredNotification(sbn);
+            try {
+                getDao().create(storedNotification);
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            Log.d(TAG, "stored notification! #" + notificationId + " " + storedNotification.getTitle());
+        }
+
         try {
             Log.d(TAG, "querying for: " + String.valueOf(notificationId) + " " + packageName);
             List<StoredNotification> notifications = getDao().queryBuilder().where()
